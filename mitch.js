@@ -1,5 +1,23 @@
-window.onload = (function() {
-var impressiveTweets = (function($) {
+$(document).ready(function() {
+	//get the textbox input, then call impressivetweets
+
+	$("form").submit(function(event) {
+		event.preventDefault();
+
+		impress().init();
+		
+		var searchline = $('input[name=terms]').val() || "dogs cats";
+
+		$("#input-terms").fadeOut(400);
+		$("#loadingscreen p").fadeIn(400);
+		$('body').removeClass("stop-scrolling");
+
+		impressiveTweets(jQuery, searchline);
+	});
+});
+
+var impressiveTweets = (function($, searchterms) {
+
 	function randomIntFromInterval(min, max) {
 		return Math.floor(Math.random() * (max - min + 1) + min);
 	}
@@ -65,16 +83,18 @@ var impressiveTweets = (function($) {
 			//Pick an assortment of 'howmany' items from the array, unless the array is smaller than howmany,
 			//in which case it just returns the original array.
 
-			var length = arr.length;
-			if (howmany > length) {
+			
+			if (howmany > arr.length) {
 				//no point in selecting if we don't have enough to begin with
+				console.log("didn't get enough tweets from twitter");
 				return arr;
 			} else {
 				//for now just pick a random assortment
 				var result = [];
 				for (var i = 0; i < howmany; i += 1) {
-					randomIntFromInterval(0, length - 1);
-					result.push(arr[i]);
+
+					pick = randomIntFromInterval(0, arr.length - 1);
+					result.push(arr[pick]);
 					arr.splice(i, 1); // remove the result so we don't select it again
 				}
 				return result;
@@ -98,11 +118,11 @@ var impressiveTweets = (function($) {
 		fetchNewTweets(searchtopics, COUNT, false, function(result, max) {
 			allCurrentSlides = populateSlides(result);
 			updateFixedBG(allCurrentSlides);
-            window.setTimeout(function(){
-                $("#loadingscreen").fadeOut(100);
-                setOrResetCycle(cycleTimer);
-            }, 500);
-			
+			window.setTimeout(function() {
+				$("#loadingscreen").fadeOut(100);
+				setOrResetCycle(cycleTimer);
+			}, 500);
+
 		});
 	}
 
@@ -191,9 +211,7 @@ var impressiveTweets = (function($) {
 	var timing;
 	var allCurrentSlides;
 
-    //todo: get rid of this prompt; put a form on loading screen
-	var searchline = prompt("enter some topics to follow","Atlantic Pacific") || "dogs cats"; 
-	var searchtopics = searchline.split(" ");
+	var searchtopics = searchterms.split(" ");
 
 	fetchNewTweets(searchtopics, COUNT, false, function(result, max) {
 		// console.log("got results: ");
@@ -201,11 +219,11 @@ var impressiveTweets = (function($) {
 
 		allCurrentSlides = populateSlides(result);
 		updateFixedBG(allCurrentSlides);
-        window.setTimeout(function(){
-            $("#loadingscreen").fadeOut();
-            setOrResetCycle(cycleTimer);
-        }, 500); //add a little extra to be safe
-		
+		window.setTimeout(function() {
+			$("#loadingscreen").fadeOut();
+			setOrResetCycle(cycleTimer);
+		}, 500); //add a little extra to be safe
+
 	});
 
 	window.addEventListener('impress:stepleave', function() {
@@ -222,9 +240,8 @@ var impressiveTweets = (function($) {
 		setOrResetCycle(cycleTimer);
 
 		//below is for debugging -- repopulate all slides on keypress
-		updateTweets();
+		//updateTweets();
 	});
 
 	return {};
-}(jQuery));
 });
