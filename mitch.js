@@ -1,4 +1,4 @@
-$( document ).ready(function() {
+window.onload = (function() {
 var impressiveTweets = (function($) {
 	function randomIntFromInterval(min, max) {
 		return Math.floor(Math.random() * (max - min + 1) + min);
@@ -184,6 +184,7 @@ var impressiveTweets = (function($) {
 	//------------------ MAIN	
 
 	impress().init();
+	//$('body').show();
 
 	var COUNT = 15; //the number of slides.
 	var cycleTimer = 2500; //time between slides in ms

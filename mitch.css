@@ -20,8 +20,10 @@ body {
 }
 
 #loadingscreen p {
+    color: #FFF;
+    opacity: 0.5;
+    
     font-size: 36;
-    color: black;
 	font-style: italic;
 
     position: absolute;
@@ -30,6 +32,8 @@ body {
 }
 
 #loadingscreen span {
+    
+
     padding-left:20px;
 }
 
