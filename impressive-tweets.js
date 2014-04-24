@@ -48,7 +48,7 @@ var impressiveTweets = (function($, searchterms) {
 			for (var i = 0, len = topics.length; i < len; i += 1) { //for each topic
 				//get tweets for that topic
 				$.ajax({
-					url: "http://limitless-river-8379.herokuapp.com/1.1/search/tweets.json?q=" +
+					url: "//limitless-river-8379.herokuapp.com/1.1/search/tweets.json?q=" +
 						topics[i] + "&result_type=recent&count=" + matches + "&langage=en",
 
 					dataType: 'jsonp',
