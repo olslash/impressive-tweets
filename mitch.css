@@ -1,7 +1,6 @@
 html, body {height: 100%}
 body {
 	font-family: source-sans-pro, sans-serif;
-	font-style: semibold;
     background-image: url("./backgrounds/puff.jpg");
 
 }
@@ -89,4 +88,7 @@ body {
     
 }
 
+#fixedbg #ampm {
+    font-style: normal;
+}
 
