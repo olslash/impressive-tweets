@@ -92,3 +92,8 @@ body {
     font-style: normal;
 }
 
+.step img {
+    float: left; 
+    padding-right: 30px; 
+    height: 4em;
+}
