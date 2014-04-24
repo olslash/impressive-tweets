@@ -201,10 +201,7 @@ var impressiveTweets = (function($, searchterms) {
 		}
 	}
 
-	//------------------ MAIN	
-
-	impress().init();
-	//$('body').show();
+	//------------------ MAIN
 
 	var COUNT = 15; //the number of slides.
 	var cycleTimer = 2500; //time between slides in ms
