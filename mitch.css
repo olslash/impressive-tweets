@@ -1,0 +1,64 @@
+html, body {height: 100%}
+body {
+	font-family: source-sans-pro, sans-serif;
+	font-style: semibold;
+    background-image: url("./backgrounds/2/1365619133347.jpg");
+
+}
+
+#loadingscreen {
+    background: #EEE;
+    background-image: url("./backgrounds/2/1365619133347.jpg");
+    position: absolute;
+    min-height: 100%;
+    overflow-y: hidden;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    z-index: 100;
+}
+
+#loadingscreen p {
+    font-size: 36;
+    color: black;
+	font-style: italic;
+
+    position: absolute;
+    top: 30%;
+    left: 30%;
+}
+
+#loadingscreen span {
+    padding-left:20px;
+}
+
+#fixedbg{
+    font-size: 48;
+    color: #FFF;
+    opacity: 1.0;
+    /*z-index: 100;*/
+
+}
+
+#fixedbg .base {
+	font-family: source-sans-pro, sans-serif;
+	font-style: italic;
+	font-size: 24px;
+}
+
+#fixedbg .big{
+	/*font-family: passion-one, sans-serif;*/
+	font-family: source-sans-pro, sans-serif;
+    font-style: bold;
+	font-size: 48px;
+}
+
+#fixedbg .slide{
+	font-family: source-sans-pro, sans-serif;
+	font-style: semibold;
+	font-size: 30px;
+    
+}
+
+
