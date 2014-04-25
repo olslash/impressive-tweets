@@ -1,3 +1,30 @@
+//== refactor agenda ==
+
+//-- I want to be able to replace the content of any slide in place --
+//-- I want to dynamically reload slides, one at a time, without load screens --
+
+// Get 100 tweets per topic. keep at (num slides) for testing.
+
+// Extract pickSome from fetchNewTweets so we can use it when updating
+// a single slide.
+
+// a method updateSlidesByID(), taking an array of the slide IDs to update,
+// and an array of tweets to do it with. 
+// Returns a correlated array of the changes. (slide ID to tweet object)
+// this replaces populateSlides().
+
+// Main, instead of calling fetchNewTweets then calling populateSlides to 
+// populate all slides at once, calls fetch to intially
+// fill a tweet pool, then calls pickSome() passing in the desired number of 
+// tweets (num slides) to get an assortment, and finally passes those results to
+// updateSlidesByID(), along with getAllSlideIDs.
+
+// maintain and update the main correlated array every time updateSlidesByID is 
+// called, for use by updateFixedBG.
+
+// a function to maintain the tweet pool, refreshing it as needed.
+
+
 $(document).ready(function() {
 	//get the textbox input, then call impressivetweets
 
@@ -5,7 +32,7 @@ $(document).ready(function() {
 		event.preventDefault();
 
 		impress().init();
-		
+
 		var searchline = $('input[name=terms]').val() || "dogs cats";
 
 		$("#input-terms").fadeOut(400);
@@ -17,6 +44,34 @@ $(document).ready(function() {
 });
 
 var impressiveTweets = (function($, searchterms) {
+
+	var TweetPool = function(initial) {
+		this.pool = initial || [];
+		var that = this;
+
+		this.pop = function(howmany) {
+			if (that.pool.length >= howmany) {
+				// pop howmany tweets
+				var result = [];
+				for (var i = 0; i < howmany; i += 1) {
+					result.unshift(that.pool.pop());
+				}
+				return result;
+			} else {
+				console.log("Not enough tweets in the pool. Returning " + that.pool.length +
+					" tweets, " + howmany + " were requested. Pool is now empty.");
+
+				return that.clear();
+			}
+
+		};
+
+		this.clear = function() {
+			var pool = that.pool;
+			that.pool = [];
+			return pool;
+		};
+	};
 
 	function randomIntFromInterval(min, max) {
 		return Math.floor(Math.random() * (max - min + 1) + min);
@@ -31,10 +86,14 @@ var impressiveTweets = (function($, searchterms) {
 		//what topics, how many of each, the ID to start at, and a callback
 		getTweetsForTopics(topics, matches, since_id, function(result, max_id) {
 			//we're done. give the callback an assortment of tweets and their ~max id
-			var finalresult;
-			finalresult = pickSome(result, matches);
-			finalresult = removeEmpties(finalresult);
-			finished_callback(finalresult, max_id);
+			// var finalresult;
+			// finalresult = pickSome(result, matches);
+			// finalresult = removeEmpties(finalresult);
+			// finished_callback(finalresult, max_id);
+
+			//refactor --------
+			finished_callback(removeEmpties(result), max_id);
+
 		});
 
 
@@ -55,9 +114,9 @@ var impressiveTweets = (function($, searchterms) {
 					type: 'GET',
 					success: function(data) {
 						//push the retrieved tweets into storage array
-						data.statuses.forEach(function(el) {
-							results.push(el);
-						});
+						// data.statuses.forEach(function(el) {
+						// 	results.push(el);
+						// });
 
 						//keep the latest max_id (doesn't really need to be accurate)
 						max_id = data.search_metadata.max_id_str;
@@ -79,27 +138,6 @@ var impressiveTweets = (function($, searchterms) {
 			}
 		}
 
-		function pickSome(arr, howmany) {
-			//Pick an assortment of 'howmany' items from the array, unless the array is smaller than howmany,
-			//in which case it just returns the original array.
-
-			
-			if (howmany > arr.length) {
-				//no point in selecting if we don't have enough to begin with
-				console.log("didn't get enough tweets from twitter");
-				return arr;
-			} else {
-				//for now just pick a random assortment
-				var result = [];
-				for (var i = 0; i < howmany; i += 1) {
-
-					pick = randomIntFromInterval(0, arr.length - 1);
-					result.push(arr[pick]);
-					arr.splice(i, 1); // remove the result so we don't select it again
-				}
-				return result;
-			}
-		}
 
 		function removeEmpties(arr) {
 			var result = [];
@@ -109,6 +147,28 @@ var impressiveTweets = (function($, searchterms) {
 					result.push(e);
 				}
 			});
+			return result;
+		}
+	}
+
+	function selectRandomTweet(arr, howmany) {
+		//Pick an assortment of 'howmany' items from the array, unless the array is smaller than howmany,
+		//in which case it just returns the original array.
+
+
+		if (howmany > arr.length) {
+			//no point in selecting if we don't have enough to begin with
+			console.log("The pool couldn't grab everything you requested. Returning what we have.");
+			return arr;
+		} else {
+			//for now just pick a random assortment
+			var result = [];
+			for (var i = 0; i < howmany; i += 1) {
+
+				pick = randomIntFromInterval(0, arr.length - 1);
+				result.push(arr[pick]);
+				arr.splice(i, 1); // remove the result so we don't select it again
+			}
 			return result;
 		}
 	}
