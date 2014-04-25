@@ -3,27 +3,6 @@
 //-- I want to be able to replace the content of any slide in place --
 //-- I want to dynamically reload slides, one at a time, without load screens --
 
-// Get 100 tweets per topic. keep at (num slides) for testing.
-
-// Extract pickSome from fetchNewTweets so we can use it when updating
-// a single slide.
-
-// a method updateSlidesByID(), taking an array of the slide IDs to update,
-// and an array of tweets to do it with. 
-// populates the specified slides with the tweets, then
-// returns a correlated array of the changes. (slide ID to tweet object)
-// this replaces populateSlides().
-
-// Main, instead of calling fetchNewTweets then calling populateSlides to 
-// populate all slides at once, calls fetch to intially
-// fill a tweet pool, then calls pickSome() passing in the desired number of 
-// tweets (num slides) to get an assortment, and finally passes those results to
-// updateSlidesByID(), along with getAllSlideIDs.
-
-// maintain and update the main correlated array every time updateSlidesByID is 
-// called, for use by updateFixedBG.
-
-// a function to maintain the tweet pool, refreshing it as needed.
 
 
 $(document).ready(function() {
@@ -57,6 +36,8 @@ var impressiveTweets = (function($, searchterms) {
 		};
 
 		this.getRandom = function(howmany) {
+			howmany = howmany || 1;
+
 			if (that.pool.length >= howmany) {
 				// return howmany tweets
 				var result = [];
@@ -167,40 +148,6 @@ var impressiveTweets = (function($, searchterms) {
 		}
 	}
 
-	function selectRandomTweet(arr, howmany) {
-		//Pick an assortment of 'howmany' items from the array, unless the array is smaller than howmany,
-		//in which case it just returns the original array.
-
-
-		if (howmany > arr.length) {
-			//no point in selecting if we don't have enough to begin with
-			console.log("The pool couldn't grab everything you requested. Returning what we have.");
-			return arr;
-		} else {
-			//for now just pick a random assortment
-			var result = [];
-			for (var i = 0; i < howmany; i += 1) {
-
-				pick = randomIntFromInterval(0, arr.length - 1);
-				result.push(arr[pick]);
-				arr.splice(i, 1); // remove the result so we don't select it again
-			}
-			return result;
-		}
-	}
-
-	// function updateTweets() {
-	// 	$("#loadingscreen").fadeIn(100);
-	// 	fetchNewTweets(searchtopics, COUNT, false, function(result, max) {
-	// 		allCurrentSlides = populateSlides(result);
-	// 		updateFixedBG(allCurrentSlides);
-	// 		window.setTimeout(function() {
-	// 			$("#loadingscreen").fadeOut(100);
-	// 			setOrResetCycle(cycleTimer);
-	// 		}, 500);
-
-	// 	});
-	// }
 
 	function getAllSlideIDs() {
 		var slides = [];
@@ -248,11 +195,6 @@ var impressiveTweets = (function($, searchterms) {
 	function updateFixedBG(correlated) {
 		//gets an array of slide IDs correlated to tweet objects (current state)
 
-		//relevant object properties:
-		// .user.name
-		// .user.created_at
-
-		//get the current slide
 		var currentSlide = getCurrentSlideFromBody();
 		//get the object associated with the current slide
 		var currentTweet = correlated[currentSlide];
@@ -278,14 +220,15 @@ var impressiveTweets = (function($, searchterms) {
 	var allCurrentSlides = {};
 
 	function updateACS(newUpdate) {
+		//merge new and old, overwriting old entries as necessary.
 		$.extend(true, allCurrentSlides, newUpdate);
 	}
 
-	var COUNT = 15; //the number of slides.
+	var COUNT = 100; //the number of tweets to get per AJAX call.
 	var cycleTimer = 2500; //time between slides in ms
-	var timing;
+	var timing; //the interval object set in setOrResetCycle
 
-	var p = new TweetPool(null, 5); //second arg is when to refill.
+	var p = new TweetPool(null, 15); //second arg is refill trigger (depth).
 
 
 	var searchtopics = searchterms.split(" ");
@@ -298,7 +241,7 @@ var impressiveTweets = (function($, searchterms) {
 
 		var allslides = getAllSlideIDs();
 		var update = updateSlidesByID(allslides, p.getRandom(allslides.length)); //initial populating of all slides
-		
+
 		updateACS(update); //update the list used by fixedBG
 		updateFixedBG(allCurrentSlides);
 
@@ -309,22 +252,27 @@ var impressiveTweets = (function($, searchterms) {
 
 	});
 
-	//todo: change these eventlisteners to $(document).on?
-	window.addEventListener('impress:stepleave', function() {
-		// update the header with info from the current slide.
+	var previous_slide = 0;
+
+	$(document).on('impress:stepleave', function() {
+		// update the header with info from the next slide.
 		updateFixedBG(allCurrentSlides);
-		if (getCurrentSlideFromBody() == ("s" + COUNT)) {
-			window.setTimeout(updateTweets, cycleTimer); //wait for the last slide to finish
-		}
+
+		//update the slide we just left
+		window.setTimeout(function() {
+			var update = updateSlidesByID([previous_slide], p.getRandom());
+			updateACS(update); 
+		}, 1000);
 	});
 
-	window.addEventListener('impress:keypress', function() {
-		//reset the cycle timer if someone changes slides manually.
-		//keypress event is manually added in and may break if impress is updated.
-		setOrResetCycle(cycleTimer);
+	$(document).on('impress:stepenter', function() {
+		previous_slide = getCurrentSlideFromBody(); //to update when we leave.
+	});
 
-		//below is for debugging -- repopulate all slides on keypress
-		//updateTweets();
+	$(document).on('impress:keypress', function() {
+		//reset the cycle timer if someone changes slides manually.
+		//keypress event is added in to the impress source and may break if impress is updated.
+		setOrResetCycle(cycleTimer);
 	});
 
 	$(document).on("TweetPool:needrefill", function() {
