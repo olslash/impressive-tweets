@@ -10,7 +10,8 @@
 
 // a method updateSlidesByID(), taking an array of the slide IDs to update,
 // and an array of tweets to do it with. 
-// Returns a correlated array of the changes. (slide ID to tweet object)
+// populates the specified slides with the tweets, then
+// returns a correlated array of the changes. (slide ID to tweet object)
 // this replaces populateSlides().
 
 // Main, instead of calling fetchNewTweets then calling populateSlides to 
@@ -49,6 +50,10 @@ var impressiveTweets = (function($, searchterms) {
 		this.pool = initial || [];
 		var that = this;
 
+		this.push = function(arr) {
+			that.pool = that.pool.concat(arr);
+		};
+
 		this.pop = function(howmany) {
 			if (that.pool.length >= howmany) {
 				// pop howmany tweets
@@ -56,6 +61,7 @@ var impressiveTweets = (function($, searchterms) {
 				for (var i = 0; i < howmany; i += 1) {
 					result.unshift(that.pool.pop());
 				}
+
 				return result;
 			} else {
 				console.log("Not enough tweets in the pool. Returning " + that.pool.length +
@@ -63,7 +69,6 @@ var impressiveTweets = (function($, searchterms) {
 
 				return that.clear();
 			}
-
 		};
 
 		this.clear = function() {
@@ -78,20 +83,10 @@ var impressiveTweets = (function($, searchterms) {
 	}
 
 	function fetchNewTweets(topics, matches, since_id, finished_callback) {
-		// topics is an array of topics to look up
-		// matches is the number of matches to return in total
-		// finished_callback is called when everything's done
-		// returns an array of tweets that covers all topics more-or-less evenly.
-
 		//what topics, how many of each, the ID to start at, and a callback
-		getTweetsForTopics(topics, matches, since_id, function(result, max_id) {
-			//we're done. give the callback an assortment of tweets and their ~max id
-			// var finalresult;
-			// finalresult = pickSome(result, matches);
-			// finalresult = removeEmpties(finalresult);
-			// finished_callback(finalresult, max_id);
 
-			//refactor --------
+		getTweetsForTopics(topics, matches, since_id, function(result, max_id) {
+			
 			finished_callback(removeEmpties(result), max_id);
 
 		});
@@ -107,16 +102,16 @@ var impressiveTweets = (function($, searchterms) {
 			for (var i = 0, len = topics.length; i < len; i += 1) { //for each topic
 				//get tweets for that topic
 				$.ajax({
-					url: "//limitless-river-8379.herokuapp.com/1.1/search/tweets.json?q=" +
+					url: "https://limitless-river-8379.herokuapp.com/1.1/search/tweets.json?q=" +
 						topics[i] + "&result_type=recent&count=" + matches + "&langage=en",
 
 					dataType: 'jsonp',
 					type: 'GET',
 					success: function(data) {
 						//push the retrieved tweets into storage array
-						// data.statuses.forEach(function(el) {
-						// 	results.push(el);
-						// });
+						data.statuses.forEach(function(el) {
+							results.push(el);
+						});
 
 						//keep the latest max_id (doesn't really need to be accurate)
 						max_id = data.search_metadata.max_id_str;
@@ -132,7 +127,7 @@ var impressiveTweets = (function($, searchterms) {
 						console.log("one of the ajax calls errored out.");
 						successcount++; // oh well...
 						if (successcount >= topics.length)
-							finished_callback(results);
+							finished_callback(results, max_id);
 					}
 				});
 			}
@@ -206,30 +201,28 @@ var impressiveTweets = (function($, searchterms) {
 		timing = setInterval(impress().next, duration);
 	}
 
-	function populateSlides(tweets) {
-
-		var correlated = {};
-		var IDs = getAllSlideIDs();
-
-		//correspond tweets array with IDs array, pushing out html on each step
-		tweets.forEach(function(e, i, a) {
-			//console.log(e.text);
-			//console.log(IDs[i]);
-			var target = $("#" + IDs[i]);
-			target.html("<img src=\"" + getFullImage(tweets[i].user.profile_image_url) + "\"</img>");
-			target.append("<q>" + e.text + "</q>");
-
-			correlated[IDs[i]] = tweets[i];
-		});
+	function updateSlidesByID(ids_to_update, tweets) {
 
 		function getFullImage(img) {
 			return img.replace("_normal", "");
-			//(0, img.indexOf("_normal"));
 		}
 
-		//returns an object that correlates current slide IDs with their tweet objects		
-		return correlated;
+		if (ids_to_update.length != tweets.length) {
+			return new Error("updateSlidesByID needs an equal number of tweets and slide IDs");
+		}
 
+		var correlated = {};
+
+		ids_to_update.forEach(function(e, i, a) {
+			var target = $("#" + e);
+			target.html("<img src=\"" + getFullImage(tweets[i].user.profile_image_url) + "\"</img>");
+			target.append("<q>" + e.text + "</q>");
+
+			correlated[e] = tweets[i];
+		});
+
+		//returns an object that correlates modified slide IDs with their tweet objects		
+		return correlated;
 	}
 
 	function updateFixedBG(correlated) {
@@ -268,18 +261,26 @@ var impressiveTweets = (function($, searchterms) {
 	var timing;
 	var allCurrentSlides;
 
+	var p = new TweetPool();
+	var correlated = {};
+
 	var searchtopics = searchterms.split(" ");
 
 	fetchNewTweets(searchtopics, COUNT, false, function(result, max) {
-		// console.log("got results: ");
-		// console.log(result);
+		//console.log("got results: ");
+		//console.log(result);
 
-		allCurrentSlides = populateSlides(result);
-		updateFixedBG(allCurrentSlides);
-		window.setTimeout(function() {
-			$("#loadingscreen").fadeOut();
-			setOrResetCycle(cycleTimer);
-		}, 500); //add a little extra to be safe
+		p.push(result); //initial filling of pool
+		var allslides = getAllSlideIDs();
+		updateSlidesByID(allslides, p.pop(allslides.length)); //initial populating of all slides
+
+
+		// allCurrentSlides = populateSlides(result);
+		// updateFixedBG(allCurrentSlides);
+		// window.setTimeout(function() {
+		// 	$("#loadingscreen").fadeOut();
+		// 	setOrResetCycle(cycleTimer);
+		// }, 500); //add a little extra to be safe
 
 	});
 
