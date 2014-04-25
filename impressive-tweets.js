@@ -1,10 +1,3 @@
-//== refactor agenda ==
-
-//-- I want to be able to replace the content of any slide in place --
-//-- I want to dynamically reload slides, one at a time, without load screens --
-
-
-
 $(document).ready(function() {
 	//get the textbox input, then call impressivetweets
 
