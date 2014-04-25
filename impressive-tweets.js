@@ -20,7 +20,7 @@ var impressiveTweets = (function($, searchterms) {
 
 	var TweetPool = function(initial, refill_at_depth) {
 		this.pool = initial || [];
-		this.refill_at_depth = refill_at_depth || 5;
+		this.refill_at_depth = refill_at_depth || 5; 
 
 		var that = this;
 
@@ -93,9 +93,13 @@ var impressiveTweets = (function($, searchterms) {
 			for (var i = 0, len = topics.length; i < len; i += 1) { //for each topic
 				//get tweets for that topic
 				$.ajax({
-					url: "//limitless-river-8379.herokuapp.com/1.1/search/tweets.json?q=" +
-						topics[i] + "&result_type=recent&count=" + matches + "&langage=en",
-
+					url: "//limitless-river-8379.herokuapp.com/1.1/search/tweets.json",
+					data: {
+						q: topics[i],
+						result_type: "recent",
+						count: matches,
+						language: "en"
+					},
 					dataType: 'jsonp',
 					type: 'GET',
 					success: function(data) {
@@ -111,11 +115,11 @@ var impressiveTweets = (function($, searchterms) {
 						successcount++;
 						if (successcount >= topics.length)
 							finished_callback(removeEmpties(results), max_id);
-						//console.log("success");
 					},
 
 					error: function() {
 						console.log("one of the ajax calls errored out.");
+						//todo: retry on error.
 						successcount++; // oh well...
 						if (successcount >= topics.length)
 							finished_callback(removeEmpties(results), max_id);
@@ -130,8 +134,6 @@ var impressiveTweets = (function($, searchterms) {
 			arr.forEach(function(e, i, a) {
 				if (e) {
 					result.push(e);
-				} else {
-					console.log("removed an empty element");
 				}
 			});
 			return result;
