@@ -46,21 +46,28 @@ $(document).ready(function() {
 
 var impressiveTweets = (function($, searchterms) {
 
-	var TweetPool = function(initial) {
+	var TweetPool = function(initial, refill_at_depth) {
 		this.pool = initial || [];
+		this.refill_at_depth = refill_at_depth || 5;
+
 		var that = this;
 
 		this.push = function(arr) {
 			that.pool = that.pool.concat(arr);
 		};
 
-		this.pop = function(howmany) {
+		this.getRandom = function(howmany) {
 			if (that.pool.length >= howmany) {
-				// pop howmany tweets
+				// return howmany tweets
 				var result = [];
+
 				for (var i = 0; i < howmany; i += 1) {
-					result.unshift(that.pool.pop());
+					var rand = randomIntFromInterval(0, that.pool.length-1);
+					result.push(that.pool[rand]);
+					that.pool.splice(rand, 1);
 				}
+
+				that.checkDepth();
 
 				return result;
 			} else {
@@ -74,8 +81,19 @@ var impressiveTweets = (function($, searchterms) {
 		this.clear = function() {
 			var pool = that.pool;
 			that.pool = [];
+			that.checkDepth();
 			return pool;
 		};
+
+		this.checkDepth = function() {
+			if (that.pool.length <= that.refill_at_depth) {
+				$.event.trigger({
+					type: "TweetPool:needrefill",
+					message: "TweetPool needs to be refilled."
+				});
+			}
+		};
+
 	};
 
 	function randomIntFromInterval(min, max) {
@@ -86,13 +104,15 @@ var impressiveTweets = (function($, searchterms) {
 		//what topics, how many of each, the ID to start at, and a callback
 
 		getTweetsForTopics(topics, matches, since_id, function(result, max_id) {
-			
+
 			finished_callback(removeEmpties(result), max_id);
 
 		});
 
 
 		function getTweetsForTopics(topics, matches, since_id, finished_callback) {
+			//todo: throw if we get fewer tweets than expected
+
 			var results = [];
 			var max_id = 0;
 			var successcount = 0;
@@ -119,7 +139,7 @@ var impressiveTweets = (function($, searchterms) {
 						//we're finished once all ajax requests complete
 						successcount++;
 						if (successcount >= topics.length)
-							finished_callback(results, max_id);
+							finished_callback(removeEmpties(results), max_id);
 						//console.log("success");
 					},
 
@@ -127,7 +147,7 @@ var impressiveTweets = (function($, searchterms) {
 						console.log("one of the ajax calls errored out.");
 						successcount++; // oh well...
 						if (successcount >= topics.length)
-							finished_callback(results, max_id);
+							finished_callback(removeEmpties(results), max_id);
 					}
 				});
 			}
@@ -138,8 +158,9 @@ var impressiveTweets = (function($, searchterms) {
 			var result = [];
 			arr.forEach(function(e, i, a) {
 				if (e) {
-					console.log(e);
 					result.push(e);
+				} else {
+					console.log("removed an empty element");
 				}
 			});
 			return result;
@@ -168,18 +189,18 @@ var impressiveTweets = (function($, searchterms) {
 		}
 	}
 
-	function updateTweets() {
-		$("#loadingscreen").fadeIn(100);
-		fetchNewTweets(searchtopics, COUNT, false, function(result, max) {
-			allCurrentSlides = populateSlides(result);
-			updateFixedBG(allCurrentSlides);
-			window.setTimeout(function() {
-				$("#loadingscreen").fadeOut(100);
-				setOrResetCycle(cycleTimer);
-			}, 500);
+	// function updateTweets() {
+	// 	$("#loadingscreen").fadeIn(100);
+	// 	fetchNewTweets(searchtopics, COUNT, false, function(result, max) {
+	// 		allCurrentSlides = populateSlides(result);
+	// 		updateFixedBG(allCurrentSlides);
+	// 		window.setTimeout(function() {
+	// 			$("#loadingscreen").fadeOut(100);
+	// 			setOrResetCycle(cycleTimer);
+	// 		}, 500);
 
-		});
-	}
+	// 	});
+	// }
 
 	function getAllSlideIDs() {
 		var slides = [];
@@ -202,13 +223,12 @@ var impressiveTweets = (function($, searchterms) {
 	}
 
 	function updateSlidesByID(ids_to_update, tweets) {
-
 		function getFullImage(img) {
 			return img.replace("_normal", "");
 		}
 
 		if (ids_to_update.length != tweets.length) {
-			return new Error("updateSlidesByID needs an equal number of tweets and slide IDs");
+			throw "updateSlidesByID needs an equal number of tweets and slide IDs";
 		}
 
 		var correlated = {};
@@ -216,7 +236,7 @@ var impressiveTweets = (function($, searchterms) {
 		ids_to_update.forEach(function(e, i, a) {
 			var target = $("#" + e);
 			target.html("<img src=\"" + getFullImage(tweets[i].user.profile_image_url) + "\"</img>");
-			target.append("<q>" + e.text + "</q>");
+			target.append("<q>" + tweets[i].text + "</q>");
 
 			correlated[e] = tweets[i];
 		});
@@ -255,14 +275,18 @@ var impressiveTweets = (function($, searchterms) {
 	}
 
 	//------------------ MAIN
+	var allCurrentSlides = {};
+
+	function updateACS(newUpdate) {
+		$.extend(true, allCurrentSlides, newUpdate);
+	}
 
 	var COUNT = 15; //the number of slides.
 	var cycleTimer = 2500; //time between slides in ms
 	var timing;
-	var allCurrentSlides;
 
-	var p = new TweetPool();
-	var correlated = {};
+	var p = new TweetPool(null, 5); //second arg is when to refill.
+
 
 	var searchtopics = searchterms.split(" ");
 
@@ -271,19 +295,21 @@ var impressiveTweets = (function($, searchterms) {
 		//console.log(result);
 
 		p.push(result); //initial filling of pool
+
 		var allslides = getAllSlideIDs();
-		updateSlidesByID(allslides, p.pop(allslides.length)); //initial populating of all slides
+		var update = updateSlidesByID(allslides, p.getRandom(allslides.length)); //initial populating of all slides
+		
+		updateACS(update); //update the list used by fixedBG
+		updateFixedBG(allCurrentSlides);
 
-
-		// allCurrentSlides = populateSlides(result);
-		// updateFixedBG(allCurrentSlides);
-		// window.setTimeout(function() {
-		// 	$("#loadingscreen").fadeOut();
-		// 	setOrResetCycle(cycleTimer);
-		// }, 500); //add a little extra to be safe
+		window.setTimeout(function() {
+			$("#loadingscreen").fadeOut();
+			setOrResetCycle(cycleTimer);
+		}, 500); //add a little extra to be safe
 
 	});
 
+	//todo: change these eventlisteners to $(document).on?
 	window.addEventListener('impress:stepleave', function() {
 		// update the header with info from the current slide.
 		updateFixedBG(allCurrentSlides);
@@ -299,6 +325,13 @@ var impressiveTweets = (function($, searchterms) {
 
 		//below is for debugging -- repopulate all slides on keypress
 		//updateTweets();
+	});
+
+	$(document).on("TweetPool:needrefill", function() {
+		console.log("Refilling tweet pool.");
+		fetchNewTweets(searchtopics, COUNT, false, function(result, max) {
+			p.push(result); 
+		});
 	});
 
 	return {};
