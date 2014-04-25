@@ -41,7 +41,7 @@ var impressiveTweets = (function($, searchterms) {
 					that.pool.splice(rand, 1);
 				}
 
-				that.checkDepth();
+				checkDepth();
 
 				return result;
 			} else {
@@ -55,11 +55,11 @@ var impressiveTweets = (function($, searchterms) {
 		this.clear = function() {
 			var pool = that.pool;
 			that.pool = [];
-			that.checkDepth();
+			checkDepth();
 			return pool;
 		};
 
-		this.checkDepth = function() {
+		checkDepth = function() {
 			if (that.pool.length <= that.refill_at_depth) {
 				$.event.trigger({
 					type: "TweetPool:needrefill",
@@ -67,7 +67,6 @@ var impressiveTweets = (function($, searchterms) {
 				});
 			}
 		};
-
 	};
 
 	function randomIntFromInterval(min, max) {
@@ -78,9 +77,7 @@ var impressiveTweets = (function($, searchterms) {
 		//what topics, how many of each, the ID to start at, and a callback
 
 		getTweetsForTopics(topics, matches, since_id, function(result, max_id) {
-
 			finished_callback(removeEmpties(result), max_id);
-
 		});
 
 
@@ -96,7 +93,7 @@ var impressiveTweets = (function($, searchterms) {
 			for (var i = 0, len = topics.length; i < len; i += 1) { //for each topic
 				//get tweets for that topic
 				$.ajax({
-					url: "https://limitless-river-8379.herokuapp.com/1.1/search/tweets.json?q=" +
+					url: "//limitless-river-8379.herokuapp.com/1.1/search/tweets.json?q=" +
 						topics[i] + "&result_type=recent&count=" + matches + "&langage=en",
 
 					dataType: 'jsonp',
@@ -244,7 +241,7 @@ var impressiveTweets = (function($, searchterms) {
 		}, 500); //add a little extra to be safe
 
 	});
-
+	
 	var previous_slide = 0;
 
 	$(document).on('impress:stepleave', function() {
@@ -252,6 +249,7 @@ var impressiveTweets = (function($, searchterms) {
 		updateFixedBG(allCurrentSlides);
 
 		//update the slide we just left
+		//todo: update maybe 5 slides ago instead. A variable HISTORY_LEVEL
 		window.setTimeout(function() {
 			var update = updateSlidesByID([previous_slide], p.getRandom());
 			updateACS(update); 
@@ -265,6 +263,7 @@ var impressiveTweets = (function($, searchterms) {
 	$(document).on('impress:keypress', function() {
 		//reset the cycle timer if someone changes slides manually.
 		//keypress event is added in to the impress source and may break if impress is updated.
+
 		setOrResetCycle(cycleTimer);
 	});
 

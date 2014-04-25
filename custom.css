@@ -55,8 +55,11 @@ body {
 }
 
 #loadingscreen span {
-    
+    padding-left:20px;
+}
 
+#loadingscreen small {
+	font-size: .25em;
     padding-left:20px;
 }
 
