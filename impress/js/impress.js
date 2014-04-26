@@ -637,7 +637,6 @@
             goto: goto,
             next: next,
             prev: prev,
-            trigger: triggerEvent //fudged in
         });
 
     };
@@ -720,7 +719,11 @@
                              break;
                 }
                 
-                impress().trigger(window, "impress:keypress"); //fudged in
+                jQuery.event.trigger({
+                    type: "impress:keypress",
+                    message: "Handled key pressed in Impress"
+                });
+
                 event.preventDefault();
             }
         }, false);

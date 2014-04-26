@@ -20,7 +20,7 @@ var impressiveTweets = (function($, searchterms) {
 
 	var TweetPool = function(initial, refill_at_depth) {
 		this.pool = initial || [];
-		this.refill_at_depth = refill_at_depth || 5; 
+		this.refill_at_depth = refill_at_depth || 5;
 
 		var that = this;
 
@@ -36,7 +36,7 @@ var impressiveTweets = (function($, searchterms) {
 				var result = [];
 
 				for (var i = 0; i < howmany; i += 1) {
-					var rand = randomIntFromInterval(0, that.pool.length-1);
+					var rand = randomIntFromInterval(0, that.pool.length - 1);
 					result.push(that.pool[rand]);
 					that.pool.splice(rand, 1);
 				}
@@ -216,11 +216,15 @@ var impressiveTweets = (function($, searchterms) {
 		$.extend(true, allCurrentSlides, newUpdate);
 	}
 
-	var COUNT = 100; //the number of tweets to get per AJAX call.
-	var cycleTimer = 2500; //time between slides in ms
-	var timing; //the interval object set in setOrResetCycle
+	// SETTINGS	
+	var COUNT = 100; // Number of tweets to fetch per AJAX call.
+	var CYCLE_TIME = 2500; // Time between slides in ms
+	var HISTORY_LEVEL = 5; // Age at which slides are overwritten.
 
+	var timing; //the interval object set in setOrResetCycle
 	var p = new TweetPool(null, 15); //second arg is refill trigger (depth).
+	var allSlides = getAllSlideIDs();
+	var runtime = 0; //number of total slides shown.
 
 	var split_by_space_or_quotes = /\w+|"[^"]*"/g;
 	var searchtopics = searchterms.match(split_by_space_or_quotes);
@@ -231,48 +235,58 @@ var impressiveTweets = (function($, searchterms) {
 
 		p.push(result); //initial filling of pool
 
-		var allslides = getAllSlideIDs();
-		var update = updateSlidesByID(allslides, p.getRandom(allslides.length)); //initial populating of all slides
+		var update = updateSlidesByID(allSlides, p.getRandom(allSlides.length)); //initial populating of all slides
 
 		updateACS(update); //update the list used by fixedBG
 		updateFixedBG(allCurrentSlides);
 
 		window.setTimeout(function() {
 			$("#loadingscreen").fadeOut();
-			setOrResetCycle(cycleTimer);
+			setOrResetCycle(CYCLE_TIME);
 		}, 500); //add a little extra to be safe
 
 	});
-	
+
 	var previous_slide = 0;
 
 	$(document).on('impress:stepleave', function() {
 		// update the header with info from the next slide.
 		updateFixedBG(allCurrentSlides);
+		
+		runtime++;
 
-		//update the slide we just left
-		//todo: update maybe 5 slides ago instead. A variable HISTORY_LEVEL
-		window.setTimeout(function() {
-			var update = updateSlidesByID([previous_slide], p.getRandom());
-			updateACS(update); 
-		}, 1000);
+		// todo: Give each tweet object a "seen" variable, and only refresh slides that have been seen.
+		// this should fix the case where a user skips forward or backward, and unseen slides are replaced.
+
+		if (runtime > HISTORY_LEVEL) { // Don't start refreshing slides we haven't seen.
+			window.setTimeout(function() { // Refresh the slide HISTORY_LEVEL slides back with a new tweet
+				var currentSlideNum = getCurrentSlideFromBody().match(/\d+/); //get the numerical portion only
+				var numSlides = allSlides.length;
+				var slideToUpdate = (((currentSlideNum - HISTORY_LEVEL) + numSlides) % numSlides) + 1; //look back 5 slides.
+				// Javascript is weird and evals ie. (-4 % 15) as -4 instead of expected 11, 
+				// so we add allSlides.length after subtracting.
+				// ie. ((current - history) + length) % length) + 1
+
+				var update = updateSlidesByID(["s" + slideToUpdate], p.getRandom());
+				updateACS(update);
+			}, 1000);
+		}
 	});
 
 	$(document).on('impress:stepenter', function() {
-		previous_slide = getCurrentSlideFromBody(); //to update when we leave.
+
 	});
 
 	$(document).on('impress:keypress', function() {
 		//reset the cycle timer if someone changes slides manually.
 		//keypress event is added in to the impress source and may break if impress is updated.
-
-		setOrResetCycle(cycleTimer);
+		setOrResetCycle(CYCLE_TIME);
 	});
 
 	$(document).on("TweetPool:needrefill", function() {
 		console.log("Refilling tweet pool.");
 		fetchNewTweets(searchtopics, COUNT, false, function(result, max) {
-			p.push(result); 
+			p.push(result);
 		});
 	});
 
