@@ -98,7 +98,7 @@ var impressiveTweets = (function($, searchterms) {
 						q: topics[i],
 						result_type: "recent",
 						count: matches,
-						language: "en"
+						language: "en" 
 					},
 					dataType: 'jsonp',
 					type: 'GET',
