@@ -98,7 +98,7 @@ var impressiveTweets = (function($, searchterms) {
 						q: topics[i],
 						result_type: "recent",
 						count: matches,
-						language: "en" 
+						language: "en"
 					},
 					dataType: 'jsonp',
 					type: 'GET',
@@ -222,8 +222,8 @@ var impressiveTweets = (function($, searchterms) {
 
 	var p = new TweetPool(null, 15); //second arg is refill trigger (depth).
 
-
-	var searchtopics = searchterms.split(" ");
+	var split_by_space_or_quotes = /\w+|"[^"]*"/g;
+	var searchtopics = searchterms.match(split_by_space_or_quotes);
 
 	fetchNewTweets(searchtopics, COUNT, false, function(result, max) {
 		//console.log("got results: ");
