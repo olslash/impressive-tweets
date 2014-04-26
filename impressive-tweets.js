@@ -283,6 +283,12 @@ var impressiveTweets = (function($, searchterms) {
 		setOrResetCycle(CYCLE_TIME);
 	});
 
+	$(document).on('impress:mouseclick', function() {
+		//reset the cycle timer if someone changes slides manually.
+		//mouseclick event is added in to the impress source and may break if impress is updated.
+		setOrResetCycle(CYCLE_TIME);
+	});
+
 	$(document).on("TweetPool:needrefill", function() {
 		console.log("Refilling tweet pool.");
 		fetchNewTweets(searchtopics, COUNT, false, function(result, max) {

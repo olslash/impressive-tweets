@@ -732,6 +732,10 @@
         document.addEventListener("click", function ( event ) {
             // event delegation with "bubbling"
             // check if event target (or any of its parents is a link)
+            jQuery.event.trigger({
+                    type: "impress:mouseclick",
+                    message: "Handled mouse click in Impress"
+            });
             var target = event.target;
             while ( (target.tagName !== "A") &&
                     (target !== document.documentElement) ) {
