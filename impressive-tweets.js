@@ -7,7 +7,6 @@ $(document).ready(function() {
 	$("form").submit(function(event) {
 		event.preventDefault();
 
-		impress().init();
 
 		var searchline = $('input[name=terms]').val() || "dogs cats";
 
@@ -221,13 +220,57 @@ var impressiveTweets = (function($, searchterms) {
 		}
 	}
 
+	function bounce(iterations, spread, max, callback) {
+		var current = 0;
+		var retreating = false;
+		var multiplier = 0;
+		var result;
+
+		for (var i = 0; i < iterations; i += 1) {
+			if (i % 2 === 0) {
+				result = current + (spread * multiplier);
+			} else {
+				result = current - (spread * multiplier);
+			}
+			callback(result, i);
+			current = result;
+
+			if (multiplier >= max) {
+				//hit limit; start retreating
+				retreating = true;
+			}
+
+			if (multiplier === 0) {
+				retreating = false;
+			}
+
+			if (!retreating) {
+				multiplier += 1;
+			} else {
+				multiplier -= 1;
+			}
+		}
+	}
+
 	//------------------ MAIN
 	var allCurrentSlides = {};
 
 	// SETTINGS	
 	var COUNT = 100; // Number of tweets to fetch per AJAX call.
-	var CYCLE_TIME = 2500; // Time between slides in ms
+	var CYCLE_TIME = 2500; // Time between slides in ms.
 	var HISTORY_LEVEL = 5; // Age at which slides are overwritten.
+	var NUMBER_OF_SLIDES = 20; // How many slides to generate.
+
+	// SLIDE POSITION SETTINGS
+	var XSPREAD = 1000; // Distance between slides on the x-axis
+	var YSPREAD = 250; // Distance between slides on the y-axis
+	var XYMAX = 1; // Maximum distance from origin. 
+	XYMAX *= 2;
+	var SCALESPREAD = 2; // Magnitude of scale differences between elements.
+	var SCALEMAX = 6; // Maximum scale value away from origin.
+
+	var ROTSPREAD = 90; // Difference in rotation between elements.
+	var ROTMAX = 3; // Maximum rotation value away from origin.
 
 	var timing; //the interval object set in setOrResetCycle
 
@@ -235,11 +278,54 @@ var impressiveTweets = (function($, searchterms) {
 	var fixedBGTemplate = Handlebars.compile($('#namedate').html());
 
 	var p = new TweetPool(null, 15); //second arg is refill trigger (depth).
-	var allSlides = getAllSlideIDs();
+
 	var runtime = 0; //number of total slides shown.
+
+	// generate slides
+	var slidesTemplate = Handlebars.compile($("#slides").html());
+	var slidesData = [];
+
+	// generate slide labels
+
+	for (var i = 0; i < NUMBER_OF_SLIDES; i += 1) {
+		slidesData[i] = {
+			id: "s" + (i + 1)
+		};
+	}
+	// generate X positions
+	bounce(NUMBER_OF_SLIDES, XSPREAD, XYMAX, function(data, iteration) {
+		slidesData[iteration].x = data;
+		//todo: avoid double 0s
+	});
+
+	//generate y positions
+	bounce(NUMBER_OF_SLIDES, YSPREAD, XYMAX, function(data, iteration) {
+		slidesData[iteration].y = data;
+		//todo: reverse order or something so it doesn't just put x and y in a line.
+	});
+
+	//generate scales
+	bounce(NUMBER_OF_SLIDES, SCALESPREAD, SCALEMAX, function(data, iteration) {
+		slidesData[iteration].scale = 1;
+		//todo: no negatives, no zero.
+	});
+
+	//generate rotations
+	bounce(NUMBER_OF_SLIDES, ROTSPREAD, ROTMAX, function(data, iteration) {
+		slidesData[iteration].rotation = 0;
+		//todo: no negatives
+	});
+	console.log(slidesData);
+
+	$("#impress").append(slidesTemplate(slidesData));
+	
+	impress().init();
+	
+	var allSlides = getAllSlideIDs();
 
 	var split_by_space_or_quotes = /\w+|"[^"]*"/g;
 	var searchtopics = searchterms.match(split_by_space_or_quotes);
+
 
 	fetchNewTweets(searchtopics, COUNT, false, function(result, max) {
 		//console.log("got results: ");
