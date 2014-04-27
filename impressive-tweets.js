@@ -1,3 +1,6 @@
+//todo: buttons to slow or speed the cycle
+//todo: button to bring up the input-terms screen again.
+
 $(document).ready(function() {
 	//get the textbox input, then call impressivetweets
 
@@ -197,10 +200,14 @@ var impressiveTweets = (function($, searchterms) {
 		var ampm = time.match(match); // save am/pm 
 		time = time.replace(match, ""); // remove am/pm
 		//time = time.replace(/^.+\:(\d\d)/, ""); //remove seconds
-		$('#fixedbg').find('#name').text(name);
-		$('#fixedbg').find('#time').text(time);
-		$('#fixedbg').find('#ampm').text(ampm);
-		$('#fixedbg').find('#date').text(date.toLocaleDateString());
+		fixedBGData = {
+			name: name,
+			time: time,
+			ampm: ampm,
+			date: date.toLocaleDateString()
+		};
+		$("#fixedbg").html(fixedBGTemplate(fixedBGData));
+
 
 		//allIDs array should correspond to the ajax results array
 		function parseTwitterDate(text) {
@@ -222,6 +229,10 @@ var impressiveTweets = (function($, searchterms) {
 	var HISTORY_LEVEL = 5; // Age at which slides are overwritten.
 
 	var timing; //the interval object set in setOrResetCycle
+
+	var fixedBGData = {}; //data for the fixedbg template
+	var fixedBGTemplate = Handlebars.compile($('#namedate').html());
+
 	var p = new TweetPool(null, 15); //second arg is refill trigger (depth).
 	var allSlides = getAllSlideIDs();
 	var runtime = 0; //number of total slides shown.
