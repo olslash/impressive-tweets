@@ -96,7 +96,7 @@ var impressiveTweets = (function($, searchterms) {
 			for (var i = 0, len = topics.length; i < len; i += 1) { //for each topic
 				//get tweets for that topic
 				$.ajax({
-					url: "//limitless-river-8379.herokuapp.com/1.1/search/tweets.json",
+					url: "https://limitless-river-8379.herokuapp.com/1.1/search/tweets.json",
 					data: {
 						q: topics[i],
 						result_type: "recent",
@@ -169,6 +169,11 @@ var impressiveTweets = (function($, searchterms) {
 			return img.replace("_normal", "");
 		}
 
+		function updateACS(newUpdate) {
+			//merge new and old, overwriting old entries as necessary.
+			$.extend(true, allCurrentSlides, newUpdate);
+		}
+
 		if (ids_to_update.length != tweets.length) {
 			throw "updateSlidesByID needs an equal number of tweets and slide IDs";
 		}
@@ -184,6 +189,7 @@ var impressiveTweets = (function($, searchterms) {
 		});
 
 		//returns an object that correlates modified slide IDs with their tweet objects		
+		updateACS(correlated);
 		return correlated;
 	}
 
@@ -218,11 +224,6 @@ var impressiveTweets = (function($, searchterms) {
 	//------------------ MAIN
 	var allCurrentSlides = {};
 
-	function updateACS(newUpdate) {
-		//merge new and old, overwriting old entries as necessary.
-		$.extend(true, allCurrentSlides, newUpdate);
-	}
-
 	// SETTINGS	
 	var COUNT = 100; // Number of tweets to fetch per AJAX call.
 	var CYCLE_TIME = 2500; // Time between slides in ms
@@ -248,7 +249,6 @@ var impressiveTweets = (function($, searchterms) {
 
 		var update = updateSlidesByID(allSlides, p.getRandom(allSlides.length)); //initial populating of all slides
 
-		updateACS(update); //update the list used by fixedBG
 		updateFixedBG(allCurrentSlides);
 
 		window.setTimeout(function() {
@@ -263,7 +263,7 @@ var impressiveTweets = (function($, searchterms) {
 	$(document).on('impress:stepleave', function() {
 		// update the header with info from the next slide.
 		updateFixedBG(allCurrentSlides);
-		
+
 		runtime++;
 
 		// todo: Give each tweet object a "seen" variable, and only refresh slides that have been seen.
@@ -279,7 +279,6 @@ var impressiveTweets = (function($, searchterms) {
 				// ie. ((current - history) + length) % length) + 1
 
 				var update = updateSlidesByID(["s" + slideToUpdate], p.getRandom());
-				updateACS(update);
 			}, 1000);
 		}
 	});
